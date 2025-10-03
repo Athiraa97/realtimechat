@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Receiver — Notifications</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card shadow-sm border-0 rounded-3">
+          <div class="card-body p-4">
+            <h3 class="card-title text-center mb-3">Live Notifications</h3>
+            {% comment %} <p class="text-center text-muted">This page listens for messages without refresh.</p> {% endcomment %}
+
+            <!-- Notification log -->
+            <ol id="log" class="list-group list-group-numbered"></ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    const log = document.getElementById("log");
+
+    function append(message) {
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex justify-content-between align-items-center";
+      li.innerHTML = `
+        <span>${message}</span>
+        <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+      `;
+      log.prepend(li); // newest first
+    }
+
+    const loc = window.location;
+    const wsScheme = loc.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${wsScheme}://${loc.host}/ws/notifications/`;
+    const socket = new WebSocket(wsUrl);
+
+    // Only handle actual messages
+    socket.addEventListener("message", function(e) {
+      try {
+        const data = JSON.parse(e.data);
+        append(data.message || "(no message)");
+      } catch (err) {
+        console.error("Invalid message", e.data);
+      }
+    });
+
+    // Connection logs only in console (not UI)
+    socket.addEventListener("open", function() {
+      console.log("WebSocket connected (receiver).");
+    });
+
+    socket.addEventListener("close", function() {
+      console.log("WebSocket closed (receiver).");
+    });
+
+    socket.addEventListener("error", function() {
+      console.error("WebSocket error (receiver).");
+    });
+  </script>
+</body>
+</html>
